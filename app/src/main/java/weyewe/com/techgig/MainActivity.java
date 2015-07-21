@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -12,6 +13,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -24,13 +30,21 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import weyewe.com.techgig.database.DBApp;
+import weyewe.com.techgig.network.VolleySingleton;
+import weyewe.com.techgig.pojo.SubReddit;
+
 
 public class MainActivity  extends AppCompatActivity {
     private static final String TAG = "RecyclerViewExample";
-    private List<FeedItem> feedsList;
+    private List<SubReddit> feedsList;
     private RecyclerView mRecyclerView;
     private MyRecyclerAdapter adapter;
     private ProgressBar progressBar;
+
+    private String urlJsonObj = "http://nsfwapp-weyewe1.c9.io/api2/sub_reddits.json";
+    private VolleySingleton volleySingleton;
+    private ArrayList<SubReddit> subRedditArrayList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,26 +55,132 @@ public class MainActivity  extends AppCompatActivity {
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+//        mLayoutManager = new GridLayoutManager(this, 2);
+        mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+
+
         progressBar = (ProgressBar) findViewById(R.id.progress_bar);
         progressBar.setVisibility(View.VISIBLE);
 
         progressBar.setVisibility(View.GONE);
 
 
-        feedsList  = new ArrayList<FeedItem>();
-        FeedItem object1  = new FeedItem( "http://i.imgur.com/hwn4RDk.jpg", "nsfw");
-        feedsList.add(object1);
+        feedsList  = TechgigApplication.getWritableDatabase().readMovies(1);
 
-        FeedItem object2  = new FeedItem( "http://i.imgur.com/tR5xN71.jpg", "wehe");
-        feedsList.add(object2);
-
-        FeedItem object3  = new FeedItem("http://i.imgur.com/iIEF6PF.png", "llala");
-        feedsList.add(object3);
 
         adapter = new MyRecyclerAdapter(MainActivity.this , feedsList);
         mRecyclerView.setAdapter(adapter);
 
+
+        if( feedsList.size() == 0 ){
+            loadNSFWData();
+        }
+
+
     }
+
+    private void loadNSFWData(){
+
+        progressBar.setVisibility(View.VISIBLE);
+
+        JSONObject jsonBody = new JSONObject();
+        JSONObject userLogin = new JSONObject();
+
+
+        try {
+            userLogin.put("email", "willy@gmail.com");
+            userLogin.put("password", "willy1234");
+            jsonBody.put("user_login",  userLogin );
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        JsonObjectRequest jsonObjReq = new JsonObjectRequest(
+                Request.Method.GET,
+                urlJsonObj,
+                jsonBody,
+                createMyReqSuccessListener(),
+                createMyReqErrorListener()
+        )
+        {
+        };
+
+        // Adding request to request queue
+//        volleySingleton.getRequestQueue().add(jsonObjReq) ;
+        VolleySingleton.getInstance().getRequestQueue().add(jsonObjReq);
+    }
+
+
+    private Response.Listener<JSONObject> createMyReqSuccessListener() {
+        return new Response.Listener<JSONObject>() {
+
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("BOOM", response.toString());
+//                ArrayList<SubReddit> subRedditList = new ArrayList<SubReddit>();
+                try {
+//                    String auth_token = response.getString("auth_token");
+//                    String email = response.getString("email");
+                    JSONArray subRedditsArray = response.getJSONArray("sub_reddits");
+
+                    for (int i = 0; i < subRedditsArray.length(); i++) {
+                        JSONObject row = subRedditsArray.getJSONObject(i);
+                        long server_id = row.getLong("id");
+                        String name = row.getString("name");
+                        String urlImage = row.getString("image_url");
+
+                        String jsonElementText  = "\n";
+                        jsonElementText += "ServerId: " + server_id + "\n\n";
+                        jsonElementText += "AuthToken: " + name + "\n\n";
+                        jsonElementText += "Email: " + urlImage + "\n\n";
+
+//                        Log.d( "element " + i, jsonElementText);
+
+                        SubReddit newObject= new SubReddit();
+                        newObject.setId( server_id );
+                        newObject.setName(name) ;
+                        newObject.setUrlImage(urlImage);
+
+                        feedsList.add( newObject );
+
+                    }
+
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    Toast.makeText( getApplicationContext(),
+                            "Error: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
+
+                Log.d("elementxxx ", " >>> hahaha. Total size: " + feedsList.size() );
+                Log.d("theWritableDatabase: ", TechgigApplication.getWritableDatabase().toString());
+                TechgigApplication.getWritableDatabase().insertSubReddits(DBApp.BOX_OFFICE, feedsList, true);
+//                hidepDialog();
+
+//                adapter = new MyRecyclerAdapter(MainActivity.this , feedsList);
+                adapter.notifyDataSetChanged();
+//                mRecyclerView.setAdapter(adapter);
+
+                progressBar.setVisibility(View.GONE);
+            }
+        };
+    }
+
+
+    private Response.ErrorListener createMyReqErrorListener() {
+        return new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+//                hidepDialog();
+                progressBar.setVisibility(View.GONE);
+            }
+        };
+    }
+
+
 //
 //    public class AsyncHttpTask extends AsyncTask<String, Void, Integer> {
 //

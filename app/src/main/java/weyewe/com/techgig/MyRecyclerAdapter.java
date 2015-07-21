@@ -14,15 +14,17 @@ import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
+import weyewe.com.techgig.pojo.SubReddit;
+
 /**
  * Created by willy on 21/07/15.
  */
 
 public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.CustomViewHolder> {
-    private List<FeedItem> feedItemList;
+    private List<SubReddit> feedItemList;
     private Context mContext;
 
-    public MyRecyclerAdapter(Context context, List<FeedItem> feedItemList) {
+    public MyRecyclerAdapter(Context context, List<SubReddit> feedItemList) {
         this.feedItemList = feedItemList;
         this.mContext = context;
     }
@@ -35,12 +37,16 @@ public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.Cu
             super(view);
             this.imageView = (ImageView) view.findViewById(R.id.thumbnail);
             this.textView = (TextView) view.findViewById(R.id.title);
+
+//            this.imageView = (ImageView) view.findViewById(R.id.img_thumbnail);
+//            this.textView = (TextView) view.findViewById(R.id.tv_species);
         }
     }
 
     @Override
     public CustomViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
         View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.list_row, null);
+//        View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.grid_item, null);
 
         CustomViewHolder viewHolder = new CustomViewHolder(view);
         return viewHolder;
@@ -48,16 +54,17 @@ public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.Cu
 
     @Override
     public void onBindViewHolder(CustomViewHolder customViewHolder, int i) {
-        FeedItem feedItem = feedItemList.get(i);
+        SubReddit feedItem = feedItemList.get(i);
 
         //Download image using picasso library
-        Picasso.with(mContext).load(feedItem.getThumbnail())
+        Picasso.with(mContext).load(feedItem.getUrlImage())
+                .fit().centerCrop()
 //                .error(R.drawable.placeholder)
 //                .placeholder(R.drawable.placeholder)
                 .into(customViewHolder.imageView);
 
         //Setting text view title
-        customViewHolder.textView.setText(Html.fromHtml(feedItem.getTitle()));
+        customViewHolder.textView.setText(Html.fromHtml(feedItem.getName()));
 
         View.OnClickListener clickListener = new View.OnClickListener() {
             @Override
@@ -65,8 +72,8 @@ public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.Cu
                 CustomViewHolder holder = (CustomViewHolder) view.getTag();
                 int position = holder.getPosition();
 
-                FeedItem feedItem = feedItemList.get(position);
-                Toast.makeText(mContext, feedItem.getTitle(), Toast.LENGTH_SHORT).show();
+//                SubReddit feedItem = feedItemList.get(position);
+//                Toast.makeText(mContext, feedItem.getTitle(), Toast.LENGTH_SHORT).show();
             }
         };
 
